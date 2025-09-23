@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="panel">
+    <h2>Executions</h2>
+    <form method="get" class="filters">
+        <label>Status
+            <select name="status_filter">
+                <option value="">All</option>
+                {% for status in ['pending', 'running', 'success', 'failed'] %}
+                <option value="{{ status }}" {% if status_filter and status == status_filter.value %}selected{% endif %}>{{ status|title }}</option>
+                {% endfor %}
+            </select>
+        </label>
+        <button type="submit">Filter</button>
+    </form>
+    <table>
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Recipe</th>
+                <th>Status</th>
+                <th>Started</th>
+                <th>Finished</th>
+                <th>Log</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for execution in executions %}
+            <tr>
+                <td>{{ execution.id }}</td>
+                <td>{{ execution.recipe.name if execution.recipe else execution.recipe_id }}</td>
+                <td class="status {{ execution.status.value }}">{{ execution.status.value }}</td>
+                <td>{{ execution.started_at }}</td>
+                <td>{{ execution.finished_at or '-' }}</td>
+                <td>{% if execution.log_path %}<code>{{ execution.log_path }}</code>{% endif %}</td>
+            </tr>
+            {% else %}
+            <tr><td colspan="6">No executions recorded.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</section>
+{% endblock %}
