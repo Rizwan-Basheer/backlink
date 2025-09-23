@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from datetime import datetime
 from enum import Enum
-from typing import Optional
+from typing import List, Optional
 
 from sqlmodel import Field, Relationship, SQLModel, Session, create_engine, select
 
@@ -48,7 +48,8 @@ class Category(SQLModel, table=True):
     is_active: bool = Field(default=True)
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
-    recipes: list["Recipe"] = Relationship(back_populates="category")
+    recipes: List["Recipe"] = Relationship(back_populates="category")
+
 
 
 class Recipe(SQLModel, table=True):
@@ -66,8 +67,9 @@ class Recipe(SQLModel, table=True):
     is_paused: bool = Field(default=False)
 
     category: Optional[Category] = Relationship(back_populates="recipes")
-    executions: list["Execution"] = Relationship(back_populates="recipe")
-    versions: list["RecipeVersion"] = Relationship(back_populates="recipe")
+    executions: List["Execution"] = Relationship(back_populates="recipe")
+    versions: List["RecipeVersion"] = Relationship(back_populates="recipe")
+
 
 
 class RecipeVersion(SQLModel, table=True):

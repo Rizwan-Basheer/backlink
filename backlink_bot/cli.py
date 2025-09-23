@@ -8,9 +8,9 @@ import typer
 from rich.console import Console
 from rich.table import Table
 
-from .bot.actions import ActionType
 from .bot.executor import RecipeExecutor
-from .bot.trainer import Trainer
+from .bot.cli_train import run_training
+
 from .db import CategoryRequestStatus, ExecutionStatus, RecipeStatus, init_db
 from .services import AdminService
 
@@ -64,55 +64,7 @@ def list_recipes(
 def train_recipe() -> None:
     _ensure_db()
     service = AdminService()
-    trainer = Trainer(admin_service=service)
-    categories = service.list_categories()
-    if not categories:
-        console.print("[yellow]No categories found. Create one first using `categories create`." )
-        raise typer.Exit(code=1)
-
-    console.print("Available categories:")
-    for idx, category in enumerate(categories, start=1):
-        console.print(f" {idx}. {category.name}")
-    category_idx = typer.prompt("Select category", type=int)
-    try:
-        category = categories[category_idx - 1]
-    except IndexError:
-        console.print("[red]Invalid category selection[/red]")
-        raise typer.Exit(code=1)
-
-    name = typer.prompt("Recipe name")
-    site = typer.prompt("Target site")
-    description = typer.prompt("Description")
-
-    session = trainer.create_session(name=name, site=site, description=description, category=category)
-    console.print("Enter actions (type `done` when finished)")
-    while True:
-        action_value = typer.prompt("Action type (goto, click, fill, wait_for, wait, select_option, screenshot, done)")
-        if action_value.lower() == "done":
-            break
-        try:
-            action_type = ActionType(action_value.lower())
-        except ValueError:
-            console.print("[red]Unknown action type[/red]")
-            continue
-        selector = typer.prompt("Selector", default="") or None
-        value = typer.prompt("Value", default="") or None
-        description_value = typer.prompt("Description", default="") or None
-        wait_for = typer.prompt("Wait for selector", default="") or None
-        session.record(
-            action_type=action_type,
-            selector=selector,
-            value=value,
-            description=description_value,
-            wait_for=wait_for,
-        )
-
-    if not session.actions:
-        console.print("[red]No actions recorded; aborting.[/red]")
-        raise typer.Exit(code=1)
-
-    trainer.save_session(session)
-    console.print(f"[green]Recipe '{session.name}' saved[/green]")
+    run_training(console, service)
 
 
 @recipes_app.command("run")
