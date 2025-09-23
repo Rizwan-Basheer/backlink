@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Executions</h2>
+<form method="get" class="filters">
+  <select name="status">
+    <option value="">All statuses</option>
+    {% for status in ['pending', 'running', 'success', 'failure'] %}
+    <option value="{{ status }}" {% if selected_status and selected_status.value == status %}selected{% endif %}>{{ status.title() }}</option>
+    {% endfor %}
+  </select>
+  <button type="submit">Filter</button>
+</form>
+<table>
+  <thead>
+    <tr>
+      <th>ID</th><th>Recipe</th><th>Status</th><th>Started</th><th>Finished</th><th>Log</th><th>Error</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for execution in executions %}
+    <tr class="status-{{ execution.status.value }}">
+      <td>{{ execution.id }}</td>
+      <td>{{ execution.recipe_id }}</td>
+      <td>{{ execution.status.value }}</td>
+      <td>{{ execution.started_at.strftime('%Y-%m-%d %H:%M') }}</td>
+      <td>{% if execution.finished_at %}{{ execution.finished_at.strftime('%Y-%m-%d %H:%M') }}{% else %}-{% endif %}</td>
+      <td>{% if execution.log_path %}<a href="{{ execution.log_path }}">Log</a>{% else %}-{% endif %}</td>
+      <td>{{ execution.error_message or '-' }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

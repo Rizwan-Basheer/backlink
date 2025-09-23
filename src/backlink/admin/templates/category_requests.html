@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Pending category requests</h2>
+{% if pending %}
+<table>
+  <thead>
+    <tr><th>ID</th><th>Name</th><th>Reason</th><th>Requested at</th></tr>
+  </thead>
+  <tbody>
+    {% for request in pending %}
+    <tr>
+      <td>{{ request.id }}</td>
+      <td>{{ request.name }}</td>
+      <td>{{ request.reason or '-' }}</td>
+      <td>{{ request.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<p>No pending requests.</p>
+{% endif %}
+{% endblock %}

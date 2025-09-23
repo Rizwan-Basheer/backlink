@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Categories</h2>
+<form method="post" action="/categories" class="create-form">
+  <input type="text" name="name" placeholder="Category name" required />
+  <input type="text" name="description" placeholder="Description" />
+  <button type="submit">Create</button>
+</form>
+<table>
+  <thead>
+    <tr><th>ID</th><th>Name</th><th>Description</th><th>Active</th><th>Actions</th></tr>
+  </thead>
+  <tbody>
+    {% for category in categories %}
+    <tr>
+      <td>{{ category.id }}</td>
+      <td>{{ category.name }}</td>
+      <td>{{ category.description or '-' }}</td>
+      <td>{{ 'Yes' if category.is_active else 'No' }}</td>
+      <td>
+        <form method="post" action="/categories/{{ category.id }}/rerun">
+          <button type="submit">Run category</button>
+        </form>
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+<section>
+  <h3>Category requests</h3>
+  {% if requests %}
+  <table>
+    <thead>
+      <tr><th>ID</th><th>Name</th><th>Reason</th><th>Status</th><th>Actions</th></tr>
+    </thead>
+    <tbody>
+      {% for request in requests %}
+      <tr>
+        <td>{{ request.id }}</td>
+        <td>{{ request.name }}</td>
+        <td>{{ request.reason or '-' }}</td>
+        <td>{{ request.status.value }}</td>
+        <td>
+          {% if request.status.value == 'pending' %}
+          <form method="post" action="/category-requests/{{ request.id }}/approve">
+            <button type="submit">Approve</button>
+          </form>
+          <form method="post" action="/category-requests/{{ request.id }}/reject">
+            <input type="text" name="reason" placeholder="Reason" />
+            <button type="submit">Reject</button>
+          </form>
+          {% else %}
+          Completed {{ request.decision_at.strftime('%Y-%m-%d') if request.decision_at else '' }}
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p>No category requests.</p>
+  {% endif %}
+</section>
+{% endblock %}

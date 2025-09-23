@@ -1,0 +1,31 @@
+[project]
+name = "backlink"
+version = "0.1.0"
+description = "Backlink automation framework with admin panel"
+authors = [{name = "Backlink Bot"}]
+requires-python = ">=3.10"
+dependencies = [
+    "fastapi",
+    "uvicorn",
+    "sqlmodel",
+    "typer",
+    "rich",
+    "pyyaml",
+    "pandas",
+    "python-dotenv",
+    "jinja2",
+    "httpx",
+    "beautifulsoup4",
+]
+
+[project.optional-dependencies]
+playwright = ["playwright"]
+
+[project.scripts]
+backlink = "backlink.cli.main:app"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]

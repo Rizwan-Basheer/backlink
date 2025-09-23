@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="metrics">
+  <div class="card">
+    <h2>Total backlinks</h2>
+    <p class="value">{{ total_backlinks }}</p>
+  </div>
+  <div class="card">
+    <h2>Execution success rate</h2>
+    <p class="value">{{ '%.0f' % (execution_stats.success_ratio * 100) }}%</p>
+    <p>Success {{ execution_stats.success }}, Failure {{ execution_stats.failure }}, Pending {{ execution_stats.pending }}</p>
+  </div>
+</section>
+<section>
+  <h2>Active recipes per category</h2>
+  <table>
+    <thead>
+      <tr><th>Category</th><th>Recipes</th></tr>
+    </thead>
+    <tbody>
+      {% for stat in category_stats %}
+      <tr><td>{{ stat.category }}</td><td>{{ stat.recipe_count }}</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+<section>
+  <h2>Notifications</h2>
+  {% if notifications %}
+  <ul class="notifications">
+    {% for notification in notifications %}
+    <li><strong>{{ notification.type|title }}:</strong> {{ notification.message }} ({{ notification.created_at.strftime('%Y-%m-%d %H:%M') }})</li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <p>No pending notifications.</p>
+  {% endif %}
+</section>
+{% endblock %}

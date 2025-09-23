@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Recipes</h2>
+<form method="get" class="filters">
+  <input type="text" name="search" placeholder="Search by name or site" value="{{ search }}" />
+  <select name="status">
+    <option value="">All statuses</option>
+    {% for status in ['training', 'ready', 'paused', 'archived'] %}
+    <option value="{{ status }}" {% if selected_status and selected_status.value == status %}selected{% endif %}>{{ status.title() }}</option>
+    {% endfor %}
+  </select>
+  <select name="category_id">
+    <option value="">All categories</option>
+    {% for category in categories %}
+    <option value="{{ category.id }}" {% if selected_category == category.id %}selected{% endif %}>{{ category.name }}</option>
+    {% endfor %}
+  </select>
+  <button type="submit">Filter</button>
+</form>
+<form method="post" action="/recipes/rerun-all" class="bulk-action">
+  <button type="submit">Run all recipes</button>
+</form>
+<table>
+  <thead>
+    <tr>
+      <th>ID</th><th>Name</th><th>Site</th><th>Category</th><th>Status</th><th>Last run</th><th>Actions</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for recipe, category in recipes %}
+    <tr>
+      <td>{{ recipe.id }}</td>
+      <td>{{ recipe.name }}</td>
+      <td>{{ recipe.site }}</td>
+      <td>{{ category.name }}</td>
+      <td>{{ recipe.status.value }}</td>
+      <td>{% if recipe.last_executed_at %}{{ recipe.last_executed_at.strftime('%Y-%m-%d %H:%M') }}{% else %}-{% endif %}</td>
+      <td>
+        <form method="post" action="/recipes/{{ recipe.id }}/run">
+          <button type="submit">Run</button>
+        </form>
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+<section>
+  <h3>Recipes in training</h3>
+  {% if training %}
+  <ul>
+    {% for recipe in training %}
+    <li>{{ recipe.name }} ({{ recipe.site }})</li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <p>No recipes currently in training.</p>
+  {% endif %}
+</section>
+{% endblock %}
