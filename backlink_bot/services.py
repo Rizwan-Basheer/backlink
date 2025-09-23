@@ -174,6 +174,7 @@ class AdminService:
         with self._session_scope() as session:
             return session.exec(select(Recipe).where(Recipe.name == name)).first()
 
+
     def list_recipes(
         self,
         category: str | None = None,

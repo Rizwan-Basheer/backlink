@@ -10,6 +10,7 @@ from rich.table import Table
 
 from .bot.executor import RecipeExecutor
 from .bot.cli_train import run_training
+
 from .db import CategoryRequestStatus, ExecutionStatus, RecipeStatus, init_db
 from .services import AdminService
 

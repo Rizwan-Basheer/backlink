@@ -51,6 +51,7 @@ class Category(SQLModel, table=True):
     recipes: List["Recipe"] = Relationship(back_populates="category")
 
 
+
 class Recipe(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     name: str = Field(index=True, unique=True)
@@ -68,6 +69,7 @@ class Recipe(SQLModel, table=True):
     category: Optional[Category] = Relationship(back_populates="recipes")
     executions: List["Execution"] = Relationship(back_populates="recipe")
     versions: List["RecipeVersion"] = Relationship(back_populates="recipe")
+
 
 
 class RecipeVersion(SQLModel, table=True):
