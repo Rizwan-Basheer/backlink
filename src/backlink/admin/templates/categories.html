@@ -1,0 +1,49 @@
+{% extends "layout.html" %}
+{% block title %}Categories · Backlink Creator Bot{% endblock %}
+{% block header %}Categories{% endblock %}
+{% block content %}
+<div class="row g-4">
+  <div class="col-lg-7">
+    <div class="card border-0 shadow-sm mb-4">
+      <div class="card-header bg-white">
+        <h2 class="h6 mb-0">Create category</h2>
+      </div>
+      <div class="card-body">
+        <form class="row g-3" hx-post="/api/categories" hx-encoding="json" hx-swap="none"
+          hx-headers='{"X-CSRF-Token": "{{ csrf_token }}"}'
+          hx-on::afterRequest="if(event.detail.successful){BacklinkApp.refreshCategories();}">
+          <input type="hidden" name="X-CSRF-Token" value="{{ csrf_token }}">
+          <div class="col-md-5">
+            <label class="form-label" for="cname">Name</label>
+            <input class="form-control" type="text" id="cname" name="name" required>
+          </div>
+          <div class="col-md-5">
+            <label class="form-label" for="cdesc">Description</label>
+            <input class="form-control" type="text" id="cdesc" name="description">
+          </div>
+          <div class="col-md-2">
+            <label class="form-label" for="cactive">Active</label>
+            <select class="form-select" id="cactive" name="is_active">
+              <option value="true" selected>Yes</option>
+              <option value="false">No</option>
+            </select>
+          </div>
+          <div class="col-12">
+            <button class="btn btn-primary" type="submit">Create category</button>
+          </div>
+        </form>
+      </div>
+    </div>
+    {% include "partials/categories_table.html" %}
+  </div>
+  <div class="col-lg-5">
+    <div class="card border-0 shadow-sm">
+      <div class="card-header bg-white d-flex justify-content-between align-items-center">
+        <h2 class="h6 mb-0">Category requests</h2>
+        <small class="text-muted">Approve or reject incoming requests</small>
+      </div>
+      {% include "partials/category_requests.html" %}
+    </div>
+  </div>
+</div>
+{% endblock %}

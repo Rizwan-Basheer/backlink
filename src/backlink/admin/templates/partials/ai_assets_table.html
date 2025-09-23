@@ -1,0 +1,31 @@
+<div class="card border-0 shadow-sm" id="assets-table">
+  <div class="card-header bg-white">
+    <h2 class="h6 mb-0">Recent assets</h2>
+  </div>
+  <div class="table-responsive">
+    <table class="table table-striped align-middle mb-0">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Target</th>
+          <th>Kind</th>
+          <th>Snippet</th>
+          <th>Created</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for asset in assets %}
+        <tr>
+          <td>{{ asset.id }}</td>
+          <td>{{ asset.target.url }}</td>
+          <td>{{ asset.kind }}</td>
+          <td>{{ asset.content[:120] }}{% if asset.content|length > 120 %}…{% endif %}</td>
+          <td>{{ asset.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+        </tr>
+        {% else %}
+        <tr><td colspan="5" class="text-muted text-center">No AI assets generated yet.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>

@@ -1,0 +1,50 @@
+{% extends "layout.html" %}
+{% block title %}Settings · Backlink Creator Bot{% endblock %}
+{% block header %}Settings{% endblock %}
+{% block content %}
+<div class="card border-0 shadow-sm">
+  <div class="card-header bg-white">
+    <h2 class="h6 mb-0">Application settings</h2>
+  </div>
+  <div class="card-body">
+    <form class="row g-3" hx-put="/api/settings" hx-target="#settings-alert" hx-swap="innerHTML" hx-encoding="json" hx-headers='{"X-CSRF-Token": "{{ csrf_token }}"}'>
+      <input type="hidden" name="X-CSRF-Token" value="{{ csrf_token }}">
+      <div class="col-md-6">
+        <label class="form-label" for="openai">OpenAI API key</label>
+        <input class="form-control" type="password" id="openai" name="openai_api_key" value="{{ settings.openai_api_key or '' }}" placeholder="sk-...">
+      </div>
+      <div class="col-md-3">
+        <label class="form-label" for="timeout">Playwright timeout (ms)</label>
+        <input class="form-control" type="number" id="timeout" name="playwright_timeout_ms" value="{{ settings.playwright_timeout_ms }}">
+      </div>
+      <div class="col-md-3">
+        <label class="form-label" for="rate">OpenAI rate limit/min</label>
+        <input class="form-control" type="number" id="rate" name="rate_limit_per_minute" value="{{ settings.rate_limit_per_minute }}">
+      </div>
+      <div class="col-md-3">
+        <label class="form-label" for="headless">Headless by default</label>
+        <select class="form-select" id="headless" name="headless_default">
+          <option value="true" {% if settings.headless_default %}selected{% endif %}>True</option>
+          <option value="false" {% if not settings.headless_default %}selected{% endif %}>False</option>
+        </select>
+      </div>
+      <div class="col-md-3">
+        <label class="form-label" for="logpath">Log directory</label>
+        <input class="form-control" type="text" id="logpath" name="log_path" value="{{ settings.log_path }}">
+      </div>
+      <div class="col-md-3">
+        <label class="form-label" for="shotspath">Screenshots directory</label>
+        <input class="form-control" type="text" id="shotspath" name="screenshots_path" value="{{ settings.screenshots_path }}">
+      </div>
+      <div class="col-md-3">
+        <label class="form-label" for="snapshotspath">Snapshots directory</label>
+        <input class="form-control" type="text" id="snapshotspath" name="snapshots_path" value="{{ settings.snapshots_path }}">
+      </div>
+      <div class="col-12">
+        <button class="btn btn-primary" type="submit">Save settings</button>
+      </div>
+    </form>
+    <div class="mt-3" id="settings-alert"></div>
+  </div>
+</div>
+{% endblock %}

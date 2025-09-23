@@ -1,0 +1,114 @@
+{% extends "layout.html" %}
+{% block title %}Dashboard · Backlink Creator Bot{% endblock %}
+{% block header %}Dashboard{% endblock %}
+{% block content %}
+<div class="row g-4 mb-4">
+  <div class="col-md-3">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-body">
+        <h6 class="text-muted text-uppercase">Total backlinks</h6>
+        <p class="display-6 mb-0">{{ stats.total_backlinks }}</p>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-body">
+        <h6 class="text-muted text-uppercase">Successful runs</h6>
+        <p class="display-6 text-success mb-0">{{ stats.success }}</p>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-body">
+        <h6 class="text-muted text-uppercase">Failures</h6>
+        <p class="display-6 text-danger mb-0">{{ stats.failure }}</p>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-body">
+        <h6 class="text-muted text-uppercase">Pending</h6>
+        <p class="display-6 text-warning mb-0">{{ stats.pending }}</p>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="row g-4">
+  <div class="col-lg-6">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-header bg-white">
+        <h2 class="h6 mb-0">Recipes by category</h2>
+      </div>
+      <div class="card-body">
+        <canvas id="categoryChart" data-categories='{{ category_data | tojson }}'></canvas>
+      </div>
+    </div>
+  </div>
+  <div class="col-lg-6">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-header bg-white">
+        <h2 class="h6 mb-0">Execution history</h2>
+      </div>
+      <div class="card-body">
+        <canvas id="historyChart" data-history='{{ history | tojson }}'></canvas>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="row g-4 mt-4">
+  <div class="col-lg-6">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-header bg-white">
+        <h2 class="h6 mb-0">Recent notifications</h2>
+      </div>
+      <div class="list-group list-group-flush">
+        {% for notification in notifications %}
+        <div class="list-group-item">
+          <div class="d-flex justify-content-between">
+            <span class="fw-semibold text-capitalize">{{ notification.type }}</span>
+            <span class="text-muted small">{{ notification.created_at.strftime('%Y-%m-%d %H:%M') }}</span>
+          </div>
+          <p class="mb-0">{{ notification.message }}</p>
+        </div>
+        {% else %}
+        <div class="list-group-item text-muted">No notifications yet.</div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+  <div class="col-lg-6">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-header bg-white">
+        <h2 class="h6 mb-0">Recent executions</h2>
+      </div>
+      <div class="table-responsive">
+        <table class="table table-sm mb-0">
+          <thead>
+            <tr>
+              <th scope="col">ID</th>
+              <th scope="col">Recipe</th>
+              <th scope="col">Status</th>
+              <th scope="col">Started</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for execution in executions %}
+            <tr>
+              <td>{{ execution.id }}</td>
+              <td>{{ execution.recipe_id }}</td>
+              <td><span class="badge bg-{{ 'success' if execution.status.value == 'success' else 'danger' if execution.status.value == 'failure' else 'secondary' }}">{{ execution.status.value }}</span></td>
+              <td>{{ execution.started_at.strftime('%Y-%m-%d %H:%M') }}</td>
+            </tr>
+            {% else %}
+            <tr><td colspan="4" class="text-muted">No executions recorded.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

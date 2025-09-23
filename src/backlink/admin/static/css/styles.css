@@ -1,0 +1,31 @@
+body {
+  background-color: #f8f9fa;
+}
+
+.nav-link.active {
+  background-color: rgba(255, 255, 255, 0.2);
+}
+
+.card {
+  border-radius: 0.75rem;
+}
+
+.table thead th {
+  font-size: 0.75rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #6c757d;
+}
+
+.table td,
+.table th {
+  vertical-align: middle;
+}
+
+.badge {
+  text-transform: capitalize;
+}
+
+form[hx-post], form[hx-put] {
+  position: relative;
+}

@@ -1,0 +1,53 @@
+{% extends "layout.html" %}
+{% block title %}Executions · Backlink Creator Bot{% endblock %}
+{% block header %}Executions{% endblock %}
+{% block content %}
+<div class="card border-0 shadow-sm">
+  <div class="card-header bg-white d-flex justify-content-between align-items-center">
+    <h2 class="h6 mb-0">Recent executions</h2>
+  </div>
+  <div class="table-responsive">
+    <table class="table table-striped align-middle mb-0">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Recipe</th>
+          <th>Target</th>
+          <th>Status</th>
+          <th>Started</th>
+          <th>Finished</th>
+          <th>Logs</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for execution in executions %}
+        <tr>
+          <td>{{ execution.id }}</td>
+          <td>{{ execution.recipe_id }}</td>
+          <td>{{ execution.target_id or '—' }}</td>
+          <td><span class="badge bg-{{ 'success' if execution.status.value == 'success' else 'danger' if execution.status.value == 'failure' else 'secondary' }}">{{ execution.status.value }}</span></td>
+          <td>{{ execution.started_at.strftime('%Y-%m-%d %H:%M') }}</td>
+          <td>{{ execution.finished_at.strftime('%Y-%m-%d %H:%M') if execution.finished_at else '—' }}</td>
+          <td>
+            <button class="btn btn-outline-secondary btn-sm" type="button"
+              data-log-url="/api/executions/{{ execution.id }}/logs" data-execution-id="{{ execution.id }}">
+              View logs
+            </button>
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="7" class="text-center text-muted">No executions yet.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+<div class="card border-0 shadow-sm mt-4 d-none" data-log-card>
+  <div class="card-header bg-white d-flex justify-content-between align-items-center">
+    <h2 class="h6 mb-0">Execution log</h2>
+    <span class="badge bg-secondary" data-log-label></span>
+  </div>
+  <div class="card-body" style="max-height: 320px; overflow-y: auto;">
+    <pre class="small mb-0" data-log-output></pre>
+  </div>
+</div>
+</div>
+{% endblock %}

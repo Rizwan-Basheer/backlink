@@ -1,107 +1,129 @@
 # Backlink Creator Bot
 
-The Backlink Creator Bot is a modular automation framework for building backlinks across different websites. It follows a **train once, run many** approach and now includes a FastAPI powered admin panel for complete recipe lifecycle management.
+The Backlink Creator Bot is a modular automation framework for recording and executing backlink building workflows. Recipes are stored as YAML files and can be replayed automatically with variable substitution for accounts, content and runtime data. A FastAPI-powered admin panel provides visibility into recipes, executions and category management.
 
 ## Features
 
-### Bot Engine
-- **Trainer** – record browser actions and save YAML recipes.
-- **Recipe Manager** – validates and stores recipes with automatic versioning snapshots.
-- **Executor** – runs recipes using Playwright with variable substitution and execution tracking.
-- **Variables Manager** – loads CSV datasets and rotates accounts/content for placeholders like `{{accounts.username}}`.
-- **Structured Logging** – rotating log files plus optional screenshots per execution.
+- **Recipe training and management**: build reusable automation recipes with version history stored as YAML files.
+- **Execution engine**: run recipes headless or in dry-run mode with structured logging.
+- **Variable rotation**: load CSV data sources and substitute `{{placeholders}}` in actions.
+- **Scheduling primitives**: prepare recurring recipe or category runs.
+- **Admin panel**: monitor analytics, trigger reruns, manage categories and handle category requests.
+- **Target-aware execution**: register target URLs, auto-enrich metadata and queue recipe runs per target.
+- **AI-assisted content**: generate bios, captions or blog posts that reference each target while respecting recipe-specific hints.
+- **Self-healing automation**: automatically request LLM selector suggestions when Playwright steps fail (with bounded retries).
+- **CLI tooling**: Typer-based CLI for listing recipes, running executions, planning dry-runs and managing targets.
 
-### Admin Panel
-- Overview dashboard with key metrics, category breakdown and notifications.
-- Recipe management: search, filter, pause/resume, archive and run recipes individually or in bulk.
-- Execution visibility: status, logs, error messages and timestamps.
-- Category management: create categories and triage user category requests.
-- Import/export of all categories, recipes, versions and execution history.
-
-### CLI
-Built with [Typer](https://typer.tiangolo.com/) and [Rich](https://rich.readthedocs.io/), the CLI lets you:
-
-- Initialise the database: `backlink-bot init`
-- Manage recipes: train, list, run, schedule and pause/resume.
-- Manage categories and category requests.
-- Inspect executions and export/import bot state.
-- Launch the admin panel server: `backlink-bot serve-admin`
-
-## Project Layout
+## Project structure
 
 ```
-backlink_bot/
-├── admin/                # FastAPI admin application & templates
-├── bot/                  # Automation modules (actions, executor, trainer, variables)
-├── utils/                # Logging utilities
-├── config.py             # Central configuration and directories
-├── cli.py                # Typer CLI entry point
-├── db.py                 # SQLModel models and engine
-├── services.py           # Service layer shared by CLI and admin
-└── ...
+├── data/                  # Runtime artefacts (created automatically)
+├── src/backlink/
+│   ├── actions/           # Playwright integration
+│   ├── admin/             # FastAPI admin panel
+│   ├── cli/               # Typer CLI entry point
+│   ├── services/          # Domain services (recipes, variables, analytics, etc.)
+│   ├── utils/             # Shared helpers
+│   └── models.py          # SQLModel entities
+└── pyproject.toml         # Project metadata and dependencies
 ```
 
-Recipe YAML files are stored in `data/recipes/` with version snapshots under `data/versions/`. Executions write logs to `data/logs/` and screenshots to `data/screenshots/`.
+## Getting started
 
-## Getting Started
-
-1. **Install dependencies** (use the browser extra to include Playwright):
+1. Install dependencies (preferably inside a virtual environment):
 
    ```bash
-   pip install -e .[browser]
-   playwright install
+   pip install -e .
    ```
 
-2. **Initialise the database**:
+   Optionally install Playwright support:
 
    ```bash
-   backlink-bot init
+   pip install -e .[playwright]
+   playwright install chromium
    ```
 
-3. **Create at least one category**:
+2. Initialise the SQLite database:
 
    ```bash
-   backlink-bot categories create "Profile Backlinks" --description "Profile creation backlinks"
+   backlink init-db
    ```
 
-4. **Train a recipe** (interactive prompts):
+3. Start the admin panel:
 
    ```bash
-   backlink-bot recipes train
+   uvicorn backlink.admin.app:app --reload
    ```
 
-5. **Run the admin panel**:
+4. Use the CLI to import or list recipes:
 
    ```bash
-   backlink-bot serve-admin --host 0.0.0.0 --port 8000
+   backlink recipes list
    ```
 
-   Open `http://localhost:8000` to monitor recipes, executions and requests.
+## Data directories
 
-## Configuration
+Runtime artefacts such as recipe YAML files, execution logs and CSV data are stored inside the `data/` directory. The folder hierarchy is created on first import of `backlink.config`.
 
-Environment variables can override storage locations:
+## Recipe format
 
-- `BACKLINK_HOME` – base directory
-- `BACKLINK_RECIPES_DIR`, `BACKLINK_LOG_DIR`, `BACKLINK_CSV_DIR`, `BACKLINK_VERSION_DIR`, `BACKLINK_SCREENSHOT_DIR`
-- `BACKLINK_DB` – SQLite database path
-- `BACKLINK_HEADLESS` – set to `false` to run Playwright in headed mode
+Recipes are stored as YAML files with the following structure:
 
-## Data Files
+```yaml
+metadata:
+  name: Example profile backlink
+  site: example.com
+  description: Creates a profile and updates the bio link.
+  category_id: 1
+  status: ready
+variables:
+  LOGIN_USER: "{{env.WP_USER}}"
+  LOGIN_PASS: "{{env.WP_PASS}}"
+content_requirements:
+  profile_backlinks:
+    tone: friendly
+    min_bio_words: 60
+    min_caption_words: 20
+actions:
+  - name: open homepage
+    action: goto
+    value: https://example.com
+  - name: fill username
+    action: fill
+    selector: input[name="username"]
+    value: "{{LOGIN_USER}}"
+  - name: fill bio
+    action: fill
+    selector: textarea#bio
+    value: "{{GENERATED_BIO}}"
+config:
+  headless: true
+  per_action_delay_ms: 500
+```
 
-CSV datasets can be placed in `data/csv/` and referenced in recipes by filename. The variables manager rotates records automatically when executing recipes to provide different accounts or content.
+## Targets & runtime content
 
-## Testing & Development
+The executor now requires an explicit target URL for each run. Targets can be registered and enriched from the CLI:
 
-- The project relies on Playwright's async API. Install browsers via `playwright install`.
-- Admin panel uses SQLModel with SQLite; data lives in `data/backlink.db`.
-- Logs are written to `data/logs/` with rotation and can be inspected for troubleshooting.
+```bash
+backlink targets add https://example.com/post/how-to-paint
+backlink targets enrich 1
+```
 
-## Roadmap
+Profile and blog recipes automatically request tailored AI content, expose generated placeholders such as `{{GENERATED_BIO}}` and `{{GENERATED_BLOG}}`, and reuse cached results unless `--refresh-content` is passed.
 
-- Proxy/IP rotation support
-- Advanced analytics (time series charts)
-- Distributed execution queues
+Use the run helpers to execute recipes for specific targets or queue multiple targets:
+
+```bash
+backlink recipes run --recipe 3 --target 1 --headless False
+backlink run-target --target 1 --category "Profile Backlinks"
+backlink run-queue --category "Blog Backlinks" --limit 5
+backlink recipes plan --recipe 3 --target 1
+```
+
+## Testing
+
+The project uses SQLite for persistence. Automated browser execution is stubbed when Playwright is not installed, enabling development and testing without browser dependencies.
 
 ## License
 

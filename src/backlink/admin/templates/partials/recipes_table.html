@@ -1,0 +1,30 @@
+<div class="table-responsive" id="recipes-table">
+  <table class="table table-hover align-middle mb-0">
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>Name</th>
+        <th>Site</th>
+        <th>Category</th>
+        <th>Status</th>
+        <th>Version</th>
+        <th>Owner</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for recipe in recipes %}
+      <tr>
+        <td>{{ recipe.id }}</td>
+        <td>{{ recipe.name }}</td>
+        <td>{{ recipe.site }}</td>
+        <td>{{ recipe.category }}</td>
+        <td><span class="badge bg-info text-dark">{{ recipe.status }}</span></td>
+        <td>{{ recipe.version }}</td>
+        <td>{{ recipe.owner or '—' }}</td>
+      </tr>
+      {% else %}
+      <tr><td colspan="7" class="text-center text-muted">No recipes recorded.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
