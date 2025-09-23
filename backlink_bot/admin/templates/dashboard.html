@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="grid">
+    <div class="card">
+        <h2>Total Recipes</h2>
+        <p class="metric">{{ metrics.total_recipes }}</p>
+    </div>
+    <div class="card">
+        <h2>Total Executions</h2>
+        <p class="metric">{{ metrics.total_executions }}</p>
+    </div>
+    <div class="card">
+        <h2>Success</h2>
+        <p class="metric success">{{ metrics.successes }}</p>
+    </div>
+    <div class="card">
+        <h2>Failures</h2>
+        <p class="metric failure">{{ metrics.failures }}</p>
+    </div>
+</section>
+<section class="panel">
+    <h2>Category Breakdown</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Category</th>
+                <th>Recipes</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for name, count in metrics.category_breakdown.items() %}
+            <tr>
+                <td>{{ name }}</td>
+                <td>{{ count }}</td>
+            </tr>
+            {% else %}
+            <tr><td colspan="2">No categories registered yet.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</section>
+<section class="panel">
+    <h2>Recent Executions</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Recipe</th>
+                <th>Status</th>
+                <th>Started</th>
+                <th>Finished</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for execution in executions %}
+            <tr>
+                <td>{{ execution.id }}</td>
+                <td>{{ execution.recipe.name if execution.recipe else execution.recipe_id }}</td>
+                <td class="status {{ execution.status.value }}">{{ execution.status.value }}</td>
+                <td>{{ execution.started_at }}</td>
+                <td>{{ execution.finished_at or "-" }}</td>
+            </tr>
+            {% else %}
+            <tr><td colspan="5">No executions recorded.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</section>
+<section class="panel">
+    <h2>Notifications</h2>
+    <ul class="notifications">
+        {% for notification in metrics.notifications %}
+        <li>
+            <span class="tag">{{ notification.type }}</span>
+            <span>{{ notification.message }}</span>
+            <time>{{ notification.created_at }}</time>
+        </li>
+        {% else %}
+        <li>No notifications yet.</li>
+        {% endfor %}
+    </ul>
+</section>
+{% endblock %}

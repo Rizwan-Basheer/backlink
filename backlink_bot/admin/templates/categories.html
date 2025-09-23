@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="panel">
+    <h2>Categories</h2>
+    <form method="post" action="{{ url_for('create_category') }}" class="inline-form">
+        <label>Name
+            <input type="text" name="name" required>
+        </label>
+        <label>Description
+            <input type="text" name="description">
+        </label>
+        <button type="submit">Create Category</button>
+    </form>
+    <table>
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Description</th>
+                <th>Active</th>
+                <th>Created</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for category in categories %}
+            <tr>
+                <td>{{ category.name }}</td>
+                <td>{{ category.description or '-' }}</td>
+                <td>{{ 'Yes' if category.is_active else 'No' }}</td>
+                <td>{{ category.created_at }}</td>
+            </tr>
+            {% else %}
+            <tr><td colspan="4">No categories created.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</section>
+<section class="panel">
+    <h2>Category Requests</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Requester</th>
+                <th>Name</th>
+                <th>Description</th>
+                <th>Status</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for request in requests %}
+            <tr>
+                <td>{{ request.id }}</td>
+                <td>{{ request.requester }}</td>
+                <td>{{ request.requested_name }}</td>
+                <td>{{ request.description or '-' }}</td>
+                <td class="status {{ request.status.value }}">{{ request.status.value }}</td>
+                <td>
+                    {% if request.status.value == 'pending' %}
+                    <form method="post" action="{{ url_for('approve_category_request', request_id=request.id) }}" class="inline-form">
+                        <button type="submit">Approve</button>
+                    </form>
+                    <form method="post" action="{{ url_for('reject_category_request', request_id=request.id) }}" class="inline-form">
+                        <button type="submit">Reject</button>
+                    </form>
+                    {% else %}
+                    <span>Reviewed</span>
+                    {% endif %}
+                </td>
+            </tr>
+            {% else %}
+            <tr><td colspan="6">No requests.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</section>
+{% endblock %}

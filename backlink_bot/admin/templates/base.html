@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>Backlink Admin Panel</title>
+    <link rel="stylesheet" href="{{ url_for('static', path='/css/styles.css') }}">
+</head>
+<body>
+    <header class="navbar">
+        <h1>Backlink Creator Admin</h1>
+        <nav>
+            <a href="{{ url_for('dashboard') }}">Dashboard</a>
+            <a href="{{ url_for('recipes_page') }}">Recipes</a>
+            <a href="{{ url_for('executions_page') }}">Executions</a>
+            <a href="{{ url_for('categories_page') }}">Categories</a>
+        </nav>
+    </header>
+    <main>
+        {% block content %}{% endblock %}
+    </main>
+    <footer class="footer">
+        Backlink Creator Bot &copy; {{ now().year }}
+    </footer>
+</body>
+</html>

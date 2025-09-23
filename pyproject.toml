@@ -1,0 +1,33 @@
+[project]
+name = "backlink-bot"
+version = "0.1.0"
+description = "Modular backlink creator bot with admin panel and CLI"
+requires-python = ">=3.10"
+authors = [
+    {name = "Backlink Bot Team"}
+]
+readme = "README.md"
+dependencies = [
+    "typer[all]>=0.9",
+    "rich>=13.7",
+    "pyyaml>=6.0",
+    "pandas>=2.0",
+    "sqlmodel>=0.0.14",
+    "fastapi>=0.110",
+    "uvicorn[standard]>=0.23",
+    "jinja2>=3.1",
+    "python-dotenv>=1.0",
+    "pydantic>=2.6"
+]
+
+[project.optional-dependencies]
+browser = [
+    "playwright>=1.41"
+]
+
+[project.scripts]
+backlink-bot = "backlink_bot.cli:app"
+
+[build-system]
+requires = ["setuptools", "wheel"]
+build-backend = "setuptools.build_meta"
