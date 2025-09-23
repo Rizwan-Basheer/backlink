@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="panel">
+    <h2>Recipes</h2>
+    <form method="get" class="filters">
+        <label>Category
+            <select name="category">
+                <option value="">All</option>
+                {% for category in categories %}
+                <option value="{{ category.name }}" {% if category.name == selected_category %}selected{% endif %}>{{ category.name }}</option>
+                {% endfor %}
+            </select>
+        </label>
+        <label>Status
+            <select name="status_filter">
+                <option value="">All</option>
+                {% for status in ['active', 'paused', 'archived'] %}
+                <option value="{{ status }}" {% if status == status_filter %}selected{% endif %}>{{ status|title }}</option>
+                {% endfor %}
+            </select>
+        </label>
+        <label>Search
+            <input type="search" name="search" value="{{ search or '' }}">
+        </label>
+        <button type="submit">Apply</button>
+    </form>
+    <form method="post" action="{{ url_for('bulk_action') }}">
+        <div class="bulk-actions">
+            <select name="action">
+                <option value="run">Run</option>
+                <option value="pause">Pause</option>
+                <option value="resume">Resume</option>
+                <option value="archive">Archive</option>
+            </select>
+            <button type="submit">Apply to selected</button>
+        </div>
+        <table>
+            <thead>
+                <tr>
+                    <th><input type="checkbox" onclick="toggleAll(this)"></th>
+                    <th>Name</th>
+                    <th>Site</th>
+                    <th>Category</th>
+                    <th>Status</th>
+                    <th>Updated</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for recipe in recipes %}
+                <tr>
+                    <td><input type="checkbox" name="recipe_ids" value="{{ recipe.id }}"></td>
+                    <td><a href="{{ url_for('recipe_detail', recipe_id=recipe.id) }}">{{ recipe.name }}</a></td>
+                    <td>{{ recipe.site }}</td>
+                    <td>{{ recipe.category.name if recipe.category else 'Unknown' }}</td>
+                    <td class="status {{ recipe.status.value }}">{{ recipe.status.value }}</td>
+                    <td>{{ recipe.updated_at }}</td>
+                    <td>
+                        <form method="post" action="{{ url_for('run_recipe', recipe_id=recipe.id) }}">
+                            <button type="submit">Run</button>
+                        </form>
+                    </td>
+                </tr>
+                {% else %}
+                <tr><td colspan="7">No recipes registered.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </form>
+</section>
+<script>
+function toggleAll(source) {
+    const checkboxes = document.querySelectorAll('input[name="recipe_ids"]');
+    for (const checkbox of checkboxes) {
+        checkbox.checked = source.checked;
+    }
+}
+</script>
+{% endblock %}

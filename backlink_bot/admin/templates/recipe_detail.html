@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="panel">
+    <h2>{{ recipe.name }}</h2>
+    <p><strong>Site:</strong> {{ recipe.site }}</p>
+    <p><strong>Category:</strong> {{ recipe.category.name if recipe.category else 'Unknown' }}</p>
+    <p><strong>Description:</strong> {{ recipe.description }}</p>
+    <p><strong>Status:</strong> <span class="status {{ recipe.status.value }}">{{ recipe.status.value }}</span></p>
+    <p><strong>Schedule:</strong> {{ recipe.rerun_schedule or 'Not scheduled' }}</p>
+    <form method="post" action="{{ url_for('run_recipe', recipe_id=recipe.id) }}">
+        <button type="submit">Run Recipe</button>
+    </form>
+    <form method="post" action="{{ url_for('update_schedule', recipe_id=recipe.id) }}" class="inline-form">
+        <label>Schedule (cron/daily/weekly)
+            <input type="text" name="schedule" value="{{ recipe.rerun_schedule or '' }}">
+        </label>
+        <button type="submit">Save</button>
+    </form>
+</section>
+<section class="panel">
+    <h3>Executions</h3>
+    <table>
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Status</th>
+                <th>Started</th>
+                <th>Finished</th>
+                <th>Log</th>
+                <th>Error</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for execution in executions %}
+            <tr>
+                <td>{{ execution.id }}</td>
+                <td class="status {{ execution.status.value }}">{{ execution.status.value }}</td>
+                <td>{{ execution.started_at }}</td>
+                <td>{{ execution.finished_at or '-' }}</td>
+                <td>{% if execution.log_path %}<code>{{ execution.log_path }}</code>{% endif %}</td>
+                <td>{{ execution.error_message or '-' }}</td>
+            </tr>
+            {% else %}
+            <tr><td colspan="6">No executions yet.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</section>
+{% endblock %}
