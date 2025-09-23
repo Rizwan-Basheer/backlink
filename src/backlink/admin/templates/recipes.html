@@ -1,59 +1,47 @@
-{% extends "base.html" %}
+{% extends "layout.html" %}
+{% block title %}Recipes · Backlink Creator Bot{% endblock %}
+{% block header %}Recipes{% endblock %}
 {% block content %}
-<h2>Recipes</h2>
-<form method="get" class="filters">
-  <input type="text" name="search" placeholder="Search by name or site" value="{{ search }}" />
-  <select name="status">
-    <option value="">All statuses</option>
-    {% for status in ['training', 'ready', 'paused', 'archived'] %}
-    <option value="{{ status }}" {% if selected_status and selected_status.value == status %}selected{% endif %}>{{ status.title() }}</option>
-    {% endfor %}
-  </select>
-  <select name="category_id">
-    <option value="">All categories</option>
-    {% for category in categories %}
-    <option value="{{ category.id }}" {% if selected_category == category.id %}selected{% endif %}>{{ category.name }}</option>
-    {% endfor %}
-  </select>
-  <button type="submit">Filter</button>
-</form>
-<form method="post" action="/recipes/rerun-all" class="bulk-action">
-  <button type="submit">Run all recipes</button>
-</form>
-<table>
-  <thead>
-    <tr>
-      <th>ID</th><th>Name</th><th>Site</th><th>Category</th><th>Status</th><th>Last run</th><th>Actions</th>
-    </tr>
-  </thead>
-  <tbody>
-    {% for recipe, category in recipes %}
-    <tr>
-      <td>{{ recipe.id }}</td>
-      <td>{{ recipe.name }}</td>
-      <td>{{ recipe.site }}</td>
-      <td>{{ category.name }}</td>
-      <td>{{ recipe.status.value }}</td>
-      <td>{% if recipe.last_executed_at %}{{ recipe.last_executed_at.strftime('%Y-%m-%d %H:%M') }}{% else %}-{% endif %}</td>
-      <td>
-        <form method="post" action="/recipes/{{ recipe.id }}/run">
-          <button type="submit">Run</button>
-        </form>
-      </td>
-    </tr>
-    {% endfor %}
-  </tbody>
-</table>
-<section>
-  <h3>Recipes in training</h3>
-  {% if training %}
-  <ul>
-    {% for recipe in training %}
-    <li>{{ recipe.name }} ({{ recipe.site }})</li>
-    {% endfor %}
-  </ul>
-  {% else %}
-  <p>No recipes currently in training.</p>
-  {% endif %}
-</section>
+<div class="card border-0 shadow-sm mb-4">
+  <div class="card-header bg-white">
+    <h2 class="h6 mb-0">Create recipe</h2>
+  </div>
+  <div class="card-body">
+    <form class="row g-3" hx-post="/api/recipes" hx-encoding="json" hx-swap="none"
+      hx-headers='{"X-CSRF-Token": "{{ csrf_token }}"}'
+      hx-on::afterRequest="if(event.detail.successful){BacklinkApp.refreshRecipes();}">
+      <input type="hidden" name="X-CSRF-Token" value="{{ csrf_token }}">
+      <div class="col-md-4">
+        <label class="form-label" for="name">Name</label>
+        <input class="form-control" type="text" id="name" name="metadata[name]" required>
+      </div>
+      <div class="col-md-3">
+        <label class="form-label" for="site">Site</label>
+        <input class="form-control" type="text" id="site" name="metadata[site]" required>
+      </div>
+      <div class="col-md-3">
+        <label class="form-label" for="category">Category</label>
+        <select class="form-select" id="category" name="metadata[category_id]" required>
+          {% for category in categories %}
+          <option value="{{ category.id }}">{{ category.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-2 d-flex align-items-end">
+        <button class="btn btn-primary w-100" type="submit">Create</button>
+      </div>
+      <div class="col-12">
+        <label class="form-label" for="actions">Actions JSON</label>
+        <textarea class="form-control" id="actions" name="actions" rows="3" placeholder='[{"name": "visit", "action": "goto", "value": "https://example.com"}]' required></textarea>
+      </div>
+    </form>
+    <p class="text-muted small mt-2">Use the trainer for rich recordings. Content requirements and variables can be edited after creation.</p>
+  </div>
+</div>
+<div class="card border-0 shadow-sm">
+  <div class="card-header bg-white">
+    <h2 class="h6 mb-0">Recipe catalogue</h2>
+  </div>
+  {% include "partials/recipes_table.html" %}
+</div>
 {% endblock %}

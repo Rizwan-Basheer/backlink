@@ -13,6 +13,7 @@ from sqlmodel import select
 from ..database import init_db, session_scope
 from ..models import Category, Execution, Recipe, RecipeStatus
 from ..services.admin import AdminService
+from ..services.auth import AuthService
 from ..services.analytics import AnalyticsService
 from ..services.executor import RecipeExecutor
 from ..services.recipes import RecipeAction, RecipeDefinition, RecipeManager, RecipeMetadata
@@ -23,10 +24,12 @@ recipes_app = typer.Typer(help="Manage recipes")
 executions_app = typer.Typer(help="Execute recipes and show history")
 analytics_app = typer.Typer(help="Reporting and analytics")
 targets_app = typer.Typer(help="Manage backlink targets")
+users_app = typer.Typer(help="User management")
 app.add_typer(recipes_app, name="recipes")
 app.add_typer(executions_app, name="executions")
 app.add_typer(analytics_app, name="analytics")
 app.add_typer(targets_app, name="targets")
+app.add_typer(users_app, name="users")
 
 console = Console()
 
@@ -308,6 +311,22 @@ def run_queue(
                 console.print(
                     f"[cyan]Recipe {recipe.id} executed for target {target_obj.id} -> {execution.status.value}[/cyan]"
                 )
+
+
+@users_app.command("seed-admin")
+def seed_admin_user(
+    email: str,
+    name: str = typer.Option(..., "--name", help="Display name for the admin user"),
+    password: str = typer.Option(
+        ..., "--password", prompt=True, hide_input=True, confirmation_prompt=True, help="Password for the admin"
+    ),
+) -> None:
+    """Create or update an administrative user."""
+
+    with session_scope() as session:
+        auth = AuthService(session)
+        user = auth.seed_admin(email, name=name, password=password)
+    console.print(f"[green]Admin user ready: {user.email} (id={user.id})[/green]")
 
 
 @analytics_app.command("summary")

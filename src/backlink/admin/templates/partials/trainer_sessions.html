@@ -1,0 +1,26 @@
+<div class="card border-0 shadow-sm" id="trainer-sessions">
+  <div class="card-header bg-white d-flex justify-content-between">
+    <h2 class="h6 mb-0">Active sessions</h2>
+    <small class="text-muted">Click follow to stream events</small>
+  </div>
+  <div class="card-body">
+    {% if sessions %}
+    <ul class="list-group list-group-flush">
+      {% for session_id, info in sessions.items() %}
+      <li class="list-group-item d-flex justify-content-between align-items-center">
+        <div>
+          <div class="fw-semibold">{{ info.metadata.name }} · {{ info.metadata.site }}</div>
+          <div class="text-muted small">Category {{ info.metadata.category_id }}</div>
+        </div>
+        <div class="btn-group btn-group-sm">
+          <span class="badge bg-secondary align-self-center">{{ session_id }}</span>
+          <button class="btn btn-outline-primary" type="button" data-trainer-connect="{{ session_id }}">Follow</button>
+        </div>
+      </li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <p class="text-muted mb-0">No active recording sessions.</p>
+    {% endif %}
+  </div>
+</div>

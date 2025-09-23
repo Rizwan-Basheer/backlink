@@ -3,14 +3,16 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any
+from typing import Any, Union
 
 import yaml
 
 
-def read_yaml(path: Path) -> dict[str, Any]:
-    with path.open("r", encoding="utf-8") as fh:
-        return yaml.safe_load(fh) or {}
+def read_yaml(path: Union[Path, str]) -> dict[str, Any]:
+    if isinstance(path, Path):
+        with path.open("r", encoding="utf-8") as fh:
+            return yaml.safe_load(fh) or {}
+    return yaml.safe_load(path) or {}
 
 
 def write_yaml(path: Path, data: dict[str, Any]) -> None:

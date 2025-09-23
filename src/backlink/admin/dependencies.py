@@ -14,5 +14,9 @@ def get_session() -> Iterator[Session]:
     session = Session(engine)
     try:
         yield session
+        session.commit()
+    except Exception:
+        session.rollback()
+        raise
     finally:
         session.close()

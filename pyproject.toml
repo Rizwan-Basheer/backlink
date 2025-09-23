@@ -16,6 +16,9 @@ dependencies = [
     "jinja2",
     "httpx",
     "beautifulsoup4",
+    "passlib[bcrypt]",
+    "python-multipart",
+    "email-validator",
 ]
 
 [project.optional-dependencies]

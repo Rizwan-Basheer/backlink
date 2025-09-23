@@ -55,6 +55,7 @@ class RecipeExecutor:
         dry_run: bool = False,
         headless: bool | None = None,
         refresh_content: bool = False,
+        execution: Execution | None = None,
     ) -> Execution:
         prepared = self._prepare_execution(
             recipe,
@@ -64,15 +65,23 @@ class RecipeExecutor:
             refresh_content=refresh_content,
         )
 
-        execution = Execution(
-            recipe_id=prepared.recipe.id,
-            target_id=prepared.target.id,
-            status=ExecutionStatus.PENDING,
-        )
+        if execution is None:
+            execution = Execution(
+                recipe_id=prepared.recipe.id,
+                target_id=prepared.target.id,
+                status=ExecutionStatus.PENDING,
+            )
+        else:
+            execution.recipe_id = prepared.recipe.id
+            execution.target_id = prepared.target.id
+            execution.status = ExecutionStatus.PENDING
+            execution.error_message = None
+        execution.started_at = datetime.utcnow()
         self.session.add(execution)
         self.session.flush()
 
         log_path = EXECUTION_DIR / prepared.recipe.slug / f"execution_{execution.id}.log"
+        log_path.parent.mkdir(parents=True, exist_ok=True)
         execution.log_path = str(log_path)
         self.session.add(execution)
         self.session.flush()

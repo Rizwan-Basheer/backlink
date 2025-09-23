@@ -5,11 +5,17 @@ from __future__ import annotations
 from contextlib import contextmanager
 from typing import Iterator
 
+import os
+
 from sqlmodel import Session, SQLModel, create_engine
 
 from .config import DB_PATH
 
-_engine = create_engine(f"sqlite:///{DB_PATH}", echo=False, connect_args={"check_same_thread": False})
+DATABASE_URL = os.getenv("DATABASE_URL") or f"sqlite:///{DB_PATH}"
+
+connect_args = {"check_same_thread": False} if DATABASE_URL.startswith("sqlite") else {}
+
+_engine = create_engine(DATABASE_URL, echo=False, connect_args=connect_args)
 
 
 def init_db() -> None:

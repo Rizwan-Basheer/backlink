@@ -1,17 +1,15 @@
 """Database models used across the application."""
 
-from __future__ import annotations
-
 import enum
 from datetime import datetime
-from typing import Optional
+from typing import List, Optional
 
 from sqlmodel import Field, Relationship, SQLModel
 
 
 class Role(str, enum.Enum):
     ADMIN = "admin"
-    MODERATOR = "moderator"
+    OPERATOR = "operator"
     USER = "user"
 
 
@@ -44,21 +42,25 @@ class ScheduleFrequency(str, enum.Enum):
 class Category(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     name: str = Field(index=True, unique=True)
-    description: str | None = None
+    description: Optional[str] = None
     is_active: bool = Field(default=True)
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
-    recipes: list["Recipe"] = Relationship(back_populates="category")
+    recipes: List["Recipe"] = Relationship(back_populates="category")
+    schedules: List["RecipeSchedule"] = Relationship(back_populates="category")
 
 
 class User(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
-    username: str = Field(index=True, unique=True)
+    email: str = Field(index=True, unique=True)
+    name: str
     role: Role = Field(default=Role.USER)
-    email: str | None = None
+    hashed_password: str
+    is_active: bool = Field(default=True)
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
-    recipes: list["Recipe"] = Relationship(back_populates="owner")
+    recipes: List["Recipe"] = Relationship(back_populates="owner")
+    category_requests: List["CategoryRequest"] = Relationship(back_populates="requester")
 
 
 class Recipe(SQLModel, table=True):
@@ -66,7 +68,7 @@ class Recipe(SQLModel, table=True):
     name: str = Field(index=True)
     site: str = Field(index=True)
     slug: str = Field(index=True, unique=True)
-    description: str | None = None
+    description: Optional[str] = None
     status: RecipeStatus = Field(default=RecipeStatus.TRAINING)
     category_id: int = Field(foreign_key="category.id")
     owner_id: Optional[int] = Field(default=None, foreign_key="user.id")
@@ -74,14 +76,20 @@ class Recipe(SQLModel, table=True):
     is_active: bool = Field(default=True)
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
-    last_executed_at: datetime | None = None
+    last_executed_at: Optional[datetime] = None
 
-    category: Category = Relationship(back_populates="recipes")
+    category: Optional[Category] = Relationship(back_populates="recipes")
     owner: Optional[User] = Relationship(back_populates="recipes")
-    versions: list["RecipeVersion"] = Relationship(back_populates="recipe")
-    executions: list["Execution"] = Relationship(back_populates="recipe")
-    schedules: list["RecipeSchedule"] = Relationship(back_populates="recipe")
-    generated_assets: list["GeneratedAsset"] = Relationship(back_populates="recipe")
+    versions: List["RecipeVersion"] = Relationship(
+        back_populates="recipe",
+        sa_relationship_kwargs={"foreign_keys": "RecipeVersion.recipe_id"},
+    )
+    executions: List["Execution"] = Relationship(back_populates="recipe")
+    schedules: List["RecipeSchedule"] = Relationship(back_populates="recipe")
+    generated_assets: List["GeneratedAsset"] = Relationship(
+        back_populates="recipe",
+        sa_relationship_kwargs={"foreign_keys": "GeneratedAsset.recipe_id"},
+    )
 
 
 class RecipeVersion(SQLModel, table=True):
@@ -89,10 +97,13 @@ class RecipeVersion(SQLModel, table=True):
     recipe_id: int = Field(foreign_key="recipe.id")
     version: int = Field(index=True)
     yaml_path: str
-    change_summary: str | None = None
+    change_summary: Optional[str] = None
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
-    recipe: Recipe = Relationship(back_populates="versions")
+    recipe: Optional[Recipe] = Relationship(
+        back_populates="versions",
+        sa_relationship_kwargs={"foreign_keys": "RecipeVersion.recipe_id"},
+    )
 
 
 class Execution(SQLModel, table=True):
@@ -100,13 +111,13 @@ class Execution(SQLModel, table=True):
     recipe_id: int = Field(foreign_key="recipe.id")
     target_id: Optional[int] = Field(default=None, foreign_key="targeturl.id")
     status: ExecutionStatus = Field(default=ExecutionStatus.PENDING)
-    log_path: str | None = None
-    screenshot_path: str | None = None
+    log_path: Optional[str] = None
+    screenshot_path: Optional[str] = None
     started_at: datetime = Field(default_factory=datetime.utcnow)
-    finished_at: datetime | None = None
-    error_message: str | None = None
+    finished_at: Optional[datetime] = None
+    error_message: Optional[str] = None
 
-    recipe: Recipe = Relationship(back_populates="executions")
+    recipe: Optional[Recipe] = Relationship(back_populates="executions")
     target: Optional["TargetURL"] = Relationship(back_populates="executions")
 
 
@@ -114,12 +125,12 @@ class CategoryRequest(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     requested_by_id: int = Field(foreign_key="user.id")
     name: str
-    reason: str | None = None
+    reason: Optional[str] = None
     status: CategoryRequestStatus = Field(default=CategoryRequestStatus.PENDING)
     created_at: datetime = Field(default_factory=datetime.utcnow)
-    decision_at: datetime | None = None
+    decision_at: Optional[datetime] = None
 
-    requester: User = Relationship()
+    requester: Optional[User] = Relationship(back_populates="category_requests")
 
 
 class Notification(SQLModel, table=True):
@@ -139,7 +150,7 @@ class RecipeSchedule(SQLModel, table=True):
     is_active: bool = Field(default=True)
 
     recipe: Optional[Recipe] = Relationship(back_populates="schedules")
-    category: Optional[Category] = Relationship()
+    category: Optional[Category] = Relationship(back_populates="schedules")
 
 
 class TargetURL(SQLModel, table=True):
@@ -153,8 +164,8 @@ class TargetURL(SQLModel, table=True):
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
 
-    executions: list[Execution] = Relationship(back_populates="target")
-    generated_assets: list["GeneratedAsset"] = Relationship(back_populates="target")
+    executions: List[Execution] = Relationship(back_populates="target")
+    generated_assets: List["GeneratedAsset"] = Relationship(back_populates="target")
 
 
 class GeneratedAsset(SQLModel, table=True):
@@ -165,7 +176,7 @@ class GeneratedAsset(SQLModel, table=True):
     content: str
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
-    target: TargetURL = Relationship(back_populates="generated_assets")
+    target: Optional[TargetURL] = Relationship(back_populates="generated_assets")
     recipe: Optional[Recipe] = Relationship(back_populates="generated_assets")
 
 

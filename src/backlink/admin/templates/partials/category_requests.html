@@ -1,0 +1,48 @@
+<div class="card-body" id="category-requests">
+  {% if requests %}
+  <div class="table-responsive">
+    <table class="table table-sm align-middle mb-0">
+      <thead>
+        <tr>
+          <th scope="col">Requested</th>
+          <th scope="col">By</th>
+          <th scope="col">Reason</th>
+          <th scope="col">Status</th>
+          <th scope="col">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for request in requests %}
+        <tr>
+          <td>{{ request.name }}</td>
+          <td>{{ request.requested_by or '—' }}</td>
+          <td>
+            <input class="form-control form-control-sm" type="text" name="reason"
+              value="{{ request.reason or '' }}" form="request-reject-{{ request.id }}" placeholder="Optional rejection reason">
+          </td>
+          <td><span class="badge bg-secondary text-uppercase">{{ request.status.value }}</span></td>
+          <td>
+            <div class="btn-group btn-group-sm">
+              <form hx-post="/api/category-requests/{{ request.id }}/approve" hx-swap="none"
+                hx-headers='{"X-CSRF-Token": "{{ csrf_token }}"}'
+                hx-on::afterRequest="if(event.detail.successful){BacklinkApp.refreshCategories();BacklinkApp.refreshCategoryRequests();}">
+                <input type="hidden" name="X-CSRF-Token" value="{{ csrf_token }}">
+                <button class="btn btn-outline-success" type="submit">Approve</button>
+              </form>
+              <form id="request-reject-{{ request.id }}" hx-post="/api/category-requests/{{ request.id }}/reject"
+                hx-encoding="json" hx-swap="none" hx-headers='{"X-CSRF-Token": "{{ csrf_token }}"}'
+                hx-on::afterRequest="if(event.detail.successful){BacklinkApp.refreshCategoryRequests();}">
+                <input type="hidden" name="X-CSRF-Token" value="{{ csrf_token }}">
+                <button class="btn btn-outline-danger" type="submit">Reject</button>
+              </form>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <p class="text-muted mb-0">No pending requests.</p>
+  {% endif %}
+</div>

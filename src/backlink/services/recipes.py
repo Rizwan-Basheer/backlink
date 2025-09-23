@@ -7,7 +7,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Iterable, List, Optional
 
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, Field, field_validator
 from sqlmodel import Session, select
 
 from ..config import RECIPES_DIR
@@ -42,7 +42,8 @@ class RecipeDefinition(BaseModel):
     config: dict[str, Any] = Field(default_factory=dict)
     content_requirements: dict[str, Any] = Field(default_factory=dict)
 
-    @validator("actions")
+    @field_validator("actions")
+    @classmethod
     def validate_actions(cls, value: Iterable[RecipeAction]) -> List[RecipeAction]:
         items = list(value)
         if not items:
@@ -74,7 +75,7 @@ class RecipeManager:
         summaries: list[RecipeSummary] = []
         for recipe, category in result:
             version = self._current_version_number(recipe)
-            owner = recipe.owner.username if recipe.owner else None
+            owner = recipe.owner.name if recipe.owner else None
             summaries.append(
                 RecipeSummary(
                     id=recipe.id,

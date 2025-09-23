@@ -1,0 +1,41 @@
+<div class="table-responsive" id="targets-table">
+  <table class="table table-striped align-middle mb-0">
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>URL</th>
+        <th>Title</th>
+        <th>Updated</th>
+        <th>Status</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for target in targets %}
+      <tr>
+        <td>{{ target.id }}</td>
+        <td><a href="{{ target.url }}" target="_blank" rel="noopener">{{ target.url }}</a></td>
+        <td>{{ target.title or '—' }}</td>
+        <td>{{ target.updated_at.strftime('%Y-%m-%d %H:%M') }}</td>
+        <td>
+          {% if target.summary and target.keywords %}
+          <span class="badge bg-success">Enriched</span>
+          {% else %}
+          <span class="badge bg-warning text-dark">Pending</span>
+          {% endif %}
+        </td>
+        <td>
+          <div class="btn-group btn-group-sm">
+            <button class="btn btn-outline-secondary" hx-post="/api/targets/{{ target.id }}/enrich" hx-swap="none"
+              hx-headers='{"X-CSRF-Token": "{{ csrf_token }}"}'
+              hx-on::afterRequest="if(event.detail.successful){BacklinkApp.refreshTargets();}">Re-enrich</button>
+            <a class="btn btn-outline-primary" href="/executions?target={{ target.id }}">Executions</a>
+          </div>
+        </td>
+      </tr>
+      {% else %}
+      <tr><td colspan="6" class="text-center text-muted">No targets yet.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>

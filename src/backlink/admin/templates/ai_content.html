@@ -1,0 +1,43 @@
+{% extends "layout.html" %}
+{% block title %}AI Content · Backlink Creator Bot{% endblock %}
+{% block header %}AI Content{% endblock %}
+{% block content %}
+<div class="card border-0 shadow-sm mb-4">
+  <div class="card-header bg-white">
+    <h2 class="h6 mb-0">Generate assets</h2>
+  </div>
+  <div class="card-body">
+    <form class="row g-3" hx-post="/api/ai/generate" hx-encoding="json" hx-swap="none"
+      hx-headers='{"X-CSRF-Token": "{{ csrf_token }}"}'
+      hx-on::afterRequest="if(event.detail.successful){BacklinkApp.refreshAssets();}">
+      <input type="hidden" name="X-CSRF-Token" value="{{ csrf_token }}">
+      <div class="col-md-4">
+        <label class="form-label" for="target">Target</label>
+        <select class="form-select" id="target" name="target_id" required>
+          {% for target in targets %}
+          <option value="{{ target.id }}">{{ target.url }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-4">
+        <label class="form-label" for="recipe">Recipe</label>
+        <select class="form-select" id="recipe" name="recipe_id">
+          <option value="">—</option>
+          {% for recipe in recipes %}
+          <option value="{{ recipe.id }}">{{ recipe.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-4">
+        <label class="form-label" for="kinds">Kinds</label>
+        <input class="form-control" type="text" id="kinds" name="kinds" placeholder="profile_bio,caption">
+      </div>
+      <div class="col-12">
+        <button class="btn btn-primary" type="submit">Generate now</button>
+      </div>
+    </form>
+    <p class="text-muted small mt-2">Kinds: profile_bio, caption, blog_post, summary, keywords.</p>
+  </div>
+</div>
+{% include "partials/ai_assets_table.html" %}
+{% endblock %}

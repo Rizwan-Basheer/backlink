@@ -120,7 +120,82 @@ def _keywords_from_text(text: str, *, limit: int = 12) -> list[str]:
     return keywords
 
 
-def summarize_and_keywords(html_text: str) -> dict[str, str]:
+def _ensure_contains_url(text: str, url: Any) -> str:
+    if not url:
+        return text
+    url_str = str(url).strip()
+    if not url_str:
+        return text
+    if url_str in text:
+        return text
+    suffix = " " if text and not text.endswith(" ") else ""
+    return f"{text.rstrip()} {url_str}".strip()
+
+
+def _trim_to_range(text: str, minimum: int, maximum: int) -> str:
+    words = re.split(r"\s+", text.strip()) if text else []
+    if not words:
+        words = []
+    if len(words) < minimum:
+        filler = (
+            "This insight invites readers to explore the source page for "
+            "complete guidance and examples."
+        )
+        while len(words) < minimum:
+            words.extend(filler.split())
+    if len(words) > maximum:
+        words = words[:maximum]
+    return " ".join(words).strip()
+
+
+def _fallback_summary(text: str, *, url: str | None) -> str:
+    sentences = [sent.strip() for sent in re.split(r"(?<=[.!?])\s+", text) if sent.strip()]
+    collected: list[str] = []
+    count = 0
+    for sentence in sentences:
+        words = sentence.split()
+        if not words:
+            continue
+        collected.append(sentence)
+        count += len(words)
+        if count >= 140:
+            break
+    if not collected:
+        words = text.split()
+        collected = [" ".join(words[:140])]
+    combined = " ".join(collected)
+    combined = _trim_to_range(combined, 80, 160)
+    return _ensure_contains_url(combined, url)
+
+
+def _enforce_summary_bounds(summary: str, *, url: str | None, fallback: str) -> str:
+    cleaned = re.sub(r"\s+", " ", summary).strip()
+    if not cleaned:
+        return _fallback_summary(fallback, url=url)
+    words = cleaned.split()
+    if len(words) < 80 or len(words) > 160:
+        return _fallback_summary(fallback, url=url)
+    return _ensure_contains_url(" ".join(words), url)
+
+
+def _normalise_keywords(raw: Any, *, fallback_text: str) -> list[str]:
+    if isinstance(raw, str):
+        items = [item.strip().lower() for item in raw.split(",")]
+    elif isinstance(raw, list):
+        items = [str(item).strip().lower() for item in raw]
+    else:
+        items = []
+    items = [item for item in items if item]
+    if len(items) < 6:
+        for word in _keywords_from_text(fallback_text, limit=12):
+            if word not in items:
+                items.append(word)
+            if len(items) >= 6:
+                break
+    return items[:12]
+
+
+def summarize_and_keywords(html_text: str, *, url: str | None = None) -> dict[str, str]:
     """Summarise the provided HTML text and extract keywords.
 
     The function attempts to use the OpenAI API but falls back to a deterministic
@@ -131,6 +206,15 @@ def summarize_and_keywords(html_text: str) -> dict[str, str]:
     if not text:
         return {"summary": "", "keywords": ""}
 
+    summary_instruction = (
+        "Summarise the page in 80-160 words using a neutral tone and mention the URL "
+        f"{url} naturally once."
+        if url
+        else "Summarise the page in 80-160 words using a neutral tone."
+    )
+    keyword_instruction = (
+        "Provide between 6 and 12 lowercase SEO keywords separated by commas, without quotes."
+    )
     messages = [
         {
             "role": "system",
@@ -142,9 +226,8 @@ def summarize_and_keywords(html_text: str) -> dict[str, str]:
         {
             "role": "user",
             "content": (
-                "Summarise the following page in 3 sentences and provide 8 keywords. "
-                "Return JSON with keys summary and keywords. Keywords should be a "
-                "comma separated list. Page text: "
+                f"{summary_instruction} {keyword_instruction} "
+                "Return JSON with keys summary and keywords. Page text: "
                 f"{text[:5000]}"
             ),
         },
@@ -152,16 +235,23 @@ def summarize_and_keywords(html_text: str) -> dict[str, str]:
     try:
         response = _call_openai(messages, response_format={"type": "json_object"}, max_tokens=400)
         data = json.loads(response)
-        summary = str(data.get("summary", "")).strip()
-        keywords = str(data.get("keywords", "")).strip()
-        return {"summary": summary, "keywords": keywords}
+        summary = _enforce_summary_bounds(
+            str(data.get("summary", "")).strip(), url=url, fallback=text
+        )
+        keywords = _normalise_keywords(data.get("keywords"), fallback_text=text)
+        return {"summary": summary, "keywords": ", ".join(keywords)}
     except (AIIntegrationError, json.JSONDecodeError):
-        sentences = re.split(r"(?<=[.!?])\s+", text)
-        summary = " ".join(sentences[:3]).strip()
-        if not summary:
-            summary = text[:280].strip()
-        keywords = ", ".join(_keywords_from_text(text))
-        return {"summary": summary, "keywords": keywords}
+        summary = _fallback_summary(text, url=url)
+        keywords = _keywords_from_text(text)
+        if len(keywords) < 6:
+            extra = _keywords_from_text(summary)
+            for word in extra:
+                if word not in keywords:
+                    keywords.append(word)
+                if len(keywords) >= 6:
+                    break
+        keywords = [kw.lower() for kw in keywords[:12]]
+        return {"summary": summary, "keywords": ", ".join(keywords)}
 
 
 def generate_profile_assets(
@@ -170,6 +260,8 @@ def generate_profile_assets(
     tone: str = "professional",
     min_bio_words: int = 60,
     min_caption_words: int = 20,
+    max_bio_words: int = 120,
+    max_caption_words: int = 30,
 ) -> dict[str, str]:
     """Generate bio/caption/description assets tailored to the target."""
 
@@ -184,9 +276,10 @@ def generate_profile_assets(
             "role": "user",
             "content": (
                 "Provide JSON with keys bio, caption, short_description. "
-                f"Bio must be at least {min_bio_words} words, caption at least "
-                f"{min_caption_words} words, and both must weave in the target "
-                "URL and keywords naturally. Maintain a {tone} tone. "
+                f"Bio must be between {min_bio_words} and {max_bio_words} words, "
+                f"first person, friendly, and include the target URL once. "
+                f"Caption must be between {min_caption_words} and {max_caption_words} "
+                "words, upbeat, and mention the URL. Maintain a {tone} tone. "
                 f"Metadata: {metadata}"
             ),
         },
@@ -194,19 +287,30 @@ def generate_profile_assets(
     try:
         response = _call_openai(messages, response_format={"type": "json_object"}, max_tokens=600)
         data = json.loads(response)
-        return {
-            "bio": str(data.get("bio", "")).strip(),
-            "caption": str(data.get("caption", "")).strip(),
-            "short_description": str(data.get("short_description", "")).strip(),
-        }
+        bio = _trim_to_range(str(data.get("bio", "")).strip(), min_bio_words, max_bio_words)
+        caption = _trim_to_range(
+            str(data.get("caption", "")).strip(), min_caption_words, max_caption_words
+        )
+        short_description = str(data.get("short_description", "")).strip()
+        bio = _ensure_contains_url(bio, target_meta.get("url"))
+        caption = _ensure_contains_url(caption, target_meta.get("url"))
+        return {"bio": bio, "caption": caption, "short_description": short_description}
     except (AIIntegrationError, json.JSONDecodeError):
-        return _fallback_profile_assets(target_meta, tone=tone, min_bio_words=min_bio_words, min_caption_words=min_caption_words)
+        return _fallback_profile_assets(
+            target_meta,
+            tone=tone,
+            min_bio_words=min_bio_words,
+            min_caption_words=min_caption_words,
+            max_bio_words=max_bio_words,
+            max_caption_words=max_caption_words,
+        )
 
 
 def generate_blog_post(
     target_meta: Mapping[str, Any],
     *,
     min_words: int = 400,
+    max_words: int = 900,
     include_headings: bool = True,
     tone: str = "helpful",
 ) -> str:
@@ -225,7 +329,7 @@ def generate_blog_post(
         {
             "role": "user",
             "content": (
-                f"Write at least {min_words} words in {tone} tone. "
+                f"Write between {min_words} and {max_words} words in {tone} tone. "
                 "The post must include the target URL verbatim once in the body, "
                 "use short paragraphs, and end with a call to action. "
                 f"{headings_instruction} Metadata: {metadata}"
@@ -233,9 +337,16 @@ def generate_blog_post(
         },
     ]
     try:
-        return _call_openai(messages, max_tokens=1200)
+        response = _call_openai(messages, max_tokens=1600)
+        return _trim_to_range(response, min_words, max_words)
     except AIIntegrationError:
-        return _fallback_blog_post(target_meta, min_words=min_words, include_headings=include_headings, tone=tone)
+        return _fallback_blog_post(
+            target_meta,
+            min_words=min_words,
+            max_words=max_words,
+            include_headings=include_headings,
+            tone=tone,
+        )
 
 
 def troubleshoot_playwright(
@@ -297,6 +408,8 @@ def _fallback_profile_assets(
     tone: str,
     min_bio_words: int,
     min_caption_words: int,
+    max_bio_words: int,
+    max_caption_words: int,
 ) -> dict[str, str]:
     keywords = str(target_meta.get("keywords") or "").split(",")
     keywords = [kw.strip() for kw in keywords if kw.strip()]
@@ -319,8 +432,10 @@ def _fallback_profile_assets(
         ],
         sep=" ",
     )
-    bio = _ensure_word_count(bio, min_bio_words)
-    caption = _ensure_word_count(caption, min_caption_words)
+    bio = _trim_to_range(bio, min_bio_words, max_bio_words)
+    caption = _trim_to_range(caption, min_caption_words, max_caption_words)
+    bio = _ensure_contains_url(bio, url)
+    caption = _ensure_contains_url(caption, url)
     return {"bio": bio, "caption": caption, "short_description": short_description}
 
 
@@ -328,6 +443,7 @@ def _fallback_blog_post(
     target_meta: Mapping[str, Any],
     *,
     min_words: int,
+    max_words: int,
     include_headings: bool,
     tone: str,
 ) -> str:
@@ -355,20 +471,8 @@ def _fallback_blog_post(
     )
     body.append("Take the next step today and put these ideas into practice.")
     text = "\n\n".join(body)
-    return _ensure_word_count(text, min_words)
-
-
-def _ensure_word_count(text: str, minimum: int) -> str:
-    words = text.split()
-    if len(words) >= minimum:
-        return text
-    filler = (
-        " These insights provide practical steps, relevant examples, "
-        "and a clear reason to click through for more."
-    )
-    while len(words) < minimum:
-        words.extend(filler.split())
-    return " ".join(words)
+    text = _ensure_contains_url(text, url)
+    return _trim_to_range(text, min_words, max_words)
 
 
 def _heuristic_selector(dom_snippet: str, action: Mapping[str, Any]) -> dict[str, Any]:

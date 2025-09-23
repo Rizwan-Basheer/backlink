@@ -9,7 +9,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Callable, Mapping, Sequence
 
-from ..config import DEFAULT_TIMEOUT_MS, HEADLESS
+from ..config import DEFAULT_TIMEOUT_MS, HEADLESS_DEFAULT
 
 try:  # pragma: no cover - optional dependency
     from playwright.async_api import Page, async_playwright
@@ -31,7 +31,7 @@ class PlaywrightActionRunner:
     """Run recipe actions using Playwright if available, otherwise log steps."""
 
     def __init__(self, *, headless: bool | None = None, timeout_ms: int = DEFAULT_TIMEOUT_MS):
-        self.headless = headless if headless is not None else HEADLESS
+        self.headless = headless if headless is not None else HEADLESS_DEFAULT
         self.timeout_ms = timeout_ms
 
     def run(

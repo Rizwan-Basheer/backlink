@@ -21,6 +21,14 @@ class NotificationService:
         statement = select(Notification).where(Notification.is_read.is_(False))
         return list(self.session.exec(statement))
 
+    def list_recent(self, *, limit: int = 20) -> list[Notification]:
+        statement = (
+            select(Notification)
+            .order_by(Notification.created_at.desc())
+            .limit(limit)
+        )
+        return list(self.session.exec(statement))
+
     def mark_read(self, notification_id: int) -> Notification:
         notification = self.session.get(Notification, notification_id)
         if not notification:
