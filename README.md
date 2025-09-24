@@ -36,6 +36,12 @@ The Backlink Creator Bot is a modular automation framework for recording and exe
    pip install -e .
    ```
 
+   > **Note:** The project pins `bcrypt<4` to remain compatible with the version of
+   > `passlib` that provides the default password hashing backends, which is
+   > especially important on Windows where incompatible wheels can fail to
+   > install. A regular `pip install -e .` will resolve the correct version
+   > automatically.
+
    Optionally install Playwright support:
 
    ```bash
