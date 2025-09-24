@@ -28,7 +28,7 @@ def init_db() -> None:
 def session_scope() -> Iterator[Session]:
     """Provide a transactional scope for database operations."""
 
-    session = Session(_engine)
+    session = Session(_engine, expire_on_commit=False)
     try:
         yield session
         session.commit()
