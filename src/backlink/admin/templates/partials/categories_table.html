@@ -1,7 +1,8 @@
-<div class="card border-0 shadow-sm" id="categories-table">
+<div class="card border-0 shadow-sm" id="categories-table" hx-ext="json-enc">
   <div class="card-header bg-white d-flex justify-content-between align-items-center">
     <h2 class="h6 mb-0">Existing categories</h2>
   </div>
+
   <div class="table-responsive">
     <table class="table table-sm align-middle mb-0">
       <thead>
@@ -17,37 +18,80 @@
         {% for category in categories %}
         <tr>
           <td>{{ category.id }}</td>
+
           <td>
-            <input class="form-control form-control-sm" type="text" name="name"
-              value="{{ category.name }}" form="category-form-{{ category.id }}" required>
+            <input
+              class="form-control form-control-sm"
+              type="text"
+              name="name"
+              value="{{ category.name }}"
+              form="category-form-{{ category.id }}"
+              required
+            >
           </td>
+
           <td>
-            <input class="form-control form-control-sm" type="text" name="description"
-              value="{{ category.description or '' }}" form="category-form-{{ category.id }}">
+            <input
+              class="form-control form-control-sm"
+              type="text"
+              name="description"
+              value="{{ category.description or '' }}"
+              form="category-form-{{ category.id }}"
+            >
           </td>
+
           <td>
-            <select class="form-select form-select-sm" name="is_active" form="category-form-{{ category.id }}">
-              <option value="true" {% if category.is_active %}selected{% endif %}>Active</option>
+            <select
+              class="form-select form-select-sm"
+              name="is_active"
+              form="category-form-{{ category.id }}"
+            >
+              <option value="true"  {% if category.is_active %}selected{% endif %}>Active</option>
               <option value="false" {% if not category.is_active %}selected{% endif %}>Inactive</option>
             </select>
           </td>
+
           <td>
-            <form id="category-form-{{ category.id }}" hx-put="/api/categories/{{ category.id }}"
-              hx-encoding="json" hx-swap="none" hx-headers='{"X-CSRF-Token": "{{ csrf_token }}"}'
-              hx-on::afterRequest="if(event.detail.successful){BacklinkApp.refreshCategories();}">
-              <input type="hidden" name="X-CSRF-Token" value="{{ csrf_token }}">
-            </form>
+            <!-- Row form: PUT with JSON -->
+            <form
+              id="category-form-{{ category.id }}"
+              hx-put="/api/categories/{{ category.id }}"
+              hx-encoding="json"
+              hx-swap="none"
+              hx-headers='{"X-CSRF-Token":"{{ csrf_token }}"}'
+              hx-on::afterRequest="if(event.detail.successful){BacklinkApp.refreshCategories();}"
+            ></form>
+
             <div class="btn-group btn-group-sm">
-              <button class="btn btn-outline-primary" type="submit" form="category-form-{{ category.id }}">Save</button>
-              <button class="btn btn-outline-danger" type="button"
-                hx-delete="/api/categories/{{ category.id }}" hx-confirm="Delete this category?"
-                hx-swap="none" hx-headers='{"X-CSRF-Token": "{{ csrf_token }}"}'
-                hx-on::afterRequest="if(event.detail.successful){BacklinkApp.refreshCategories();}">Delete</button>
+              <button
+                class="btn btn-outline-primary"
+                type="submit"
+                form="category-form-{{ category.id }}"
+                hx-disabled-elt="this"
+                title="Save changes"
+              >
+                Save
+              </button>
+
+              <button
+                class="btn btn-outline-danger"
+                type="button"
+                hx-delete="/api/categories/{{ category.id }}"
+                hx-confirm="Delete this category?"
+                hx-swap="none"
+                hx-headers='{"X-CSRF-Token":"{{ csrf_token }}"}'
+                hx-on::afterRequest="if(event.detail.successful){BacklinkApp.refreshCategories();}"
+                title="Delete category"
+              >
+                Delete
+              </button>
             </div>
           </td>
         </tr>
         {% else %}
-        <tr><td colspan="5" class="text-center text-muted">No categories defined.</td></tr>
+        <tr>
+          <td colspan="5" class="text-center text-muted">No categories defined.</td>
+        </tr>
         {% endfor %}
       </tbody>
     </table>

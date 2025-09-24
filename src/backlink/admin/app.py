@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import asyncio
 import json
 import secrets
 import uuid
@@ -32,6 +31,17 @@ from sqlmodel import Session, select
 from starlette.middleware.sessions import SessionMiddleware
 from starlette.templating import Jinja2Templates
 from starlette.websockets import WebSocketState
+# add with other imports
+from playwright.async_api import async_playwright
+# --- put these imports right at the top of app.py ---
+import sys, asyncio
+
+# On Windows, use Proactor loop so asyncio subprocess works (required by Playwright)
+if sys.platform.startswith("win"):
+    try:
+        asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
+    except Exception:
+        pass
 
 from ..config import LOG_DIR, SCREENSHOT_DIR, SECRET_KEY
 from ..database import session_scope
@@ -457,6 +467,99 @@ def _trainer_queue(session_id: str) -> asyncio.Queue[str]:
     if session_id not in _trainer_streams:
         _trainer_streams[session_id] = asyncio.Queue()
     return _trainer_streams[session_id]
+
+# ---- Trainer (Playwright) ----
+async def _launch_trainer_browser(session_id: str, site: str) -> None:
+    """
+    Launch a visible Chromium window, navigate to `site`, and record actions.
+    """
+    queue = _trainer_queue(session_id)
+
+    def _record(payload: dict[str, Any]) -> None:
+        # Save to in-memory trainer + push to websocket feed
+        try:
+            trainer.record_action(session_id, **payload)
+            queue.put_nowait(json.dumps({"type": "action", "payload": payload}))
+        except KeyError:
+            # session was closed/discarded
+            pass
+
+    try:
+        async with async_playwright() as p:
+            browser = await p.chromium.launch(headless=False)  # <-- VISIBLE
+            context = await browser.new_context()
+            page = await context.new_page()
+
+            # Record navigations
+            page.on(
+                "framenavigated",
+                lambda frame: _record({
+                    "name": f"navigate {frame.url}",
+                    "action": "navigate",
+                    "selector": None,
+                    "value": None,
+                    "wait_for": None,
+                    "screenshot": False,
+                    # optional: you can store url in 'value' or extend TrainerActionIn schema to include 'url'
+                })
+            )
+
+            # Expose a Python function so content script can call back without CORS
+            await page.expose_function("trainerRecord", lambda data: _record(dict(data)))
+
+            # Inject a small content script to capture clicks & inputs
+            await page.add_init_script(f"""
+                (() => {{
+                  const toSelector = (el) => {{
+                    if (!el) return '';
+                    if (el.id) return '#' + el.id;
+                    let s = el.tagName ? el.tagName.toLowerCase() : '';
+                    if (el.name) s += `[name="${{el.name}}"]`;
+                    if (el.type) s += `[type="${{el.type}}"]`;
+                    if (!el.id && el.classList && el.classList.length) {{
+                      s += '.' + Array.from(el.classList).join('.');
+                    }}
+                    return s || 'unknown';
+                  }};
+                  document.addEventListener('click', (e) => {{
+                    const sel = toSelector(e.target);
+                    window.trainerRecord({{
+                      name: 'click ' + sel,
+                      action: 'click',
+                      selector: sel,
+                      value: null,
+                      wait_for: null,
+                      screenshot: false
+                    }});
+                  }}, true);
+                  document.addEventListener('input', (e) => {{
+                    const sel = toSelector(e.target);
+                    const val = (e.target && 'value' in e.target) ? e.target.value : null;
+                    window.trainerRecord({{
+                      name: 'input ' + sel,
+                      action: 'input',
+                      selector: sel,
+                      value: val,
+                      wait_for: null,
+                      screenshot: false
+                    }});
+                  }}, true);
+                }})();
+            """)
+
+            # Go to the requested site; this will emit a 'navigate' action via framenavigated
+            await page.goto(site if site.startswith("http") else f"https://{site}")
+
+            # Keep the task alive until browser closes
+            await browser.wait_for_event("disconnected")
+    except Exception as exc:
+        # Push an error message into the trainer feed, then close the session
+        queue.put_nowait(json.dumps({"type": "error", "message": str(exc)}))
+        try:
+            trainer.cancel_session(session_id)
+            queue.put_nowait(json.dumps({"type": "discarded"}))
+        except Exception:
+            pass
 
 
 # ---------------------------------------------------------------------------
@@ -1250,7 +1353,7 @@ def api_update_settings(
 
 
 @api.post("/trainer/start")
-def api_trainer_start(
+async def api_trainer_start(
     payload: TrainerStartRequest,
     _: User = Depends(require_operator),
 ) -> dict[str, str]:
@@ -1262,8 +1365,13 @@ def api_trainer_start(
         description=payload.description,
         category_id=payload.category_id,
     )
-    _trainer_queue(session_id)
+    _trainer_queue(session_id)  # ensure queue exists
+
+    # Launch visible Chromium in the background
+    asyncio.create_task(_launch_trainer_browser(session_id, payload.site))
+
     return {"session_id": session_id}
+
 
 
 @api.post("/trainer/{session_id}/actions")

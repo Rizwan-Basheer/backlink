@@ -1,0 +1,2 @@
+[console_scripts]
+backlink = backlink.cli.main:app

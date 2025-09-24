@@ -1,0 +1,31 @@
+metadata:
+  name: florevit.com
+  site: florevit.com
+  category_id: 2
+  description: ""
+  status: training
+
+variables: {}
+
+actions:
+  - name: open home
+    action: navigate
+    url: "https://florevit.com"
+
+  - name: click signup
+    action: click
+    selector: "a[href='/signup']"
+
+  - name: type email
+    action: input
+    selector: "#email"
+    value: "{{ account.email }}"
+
+  - name: type password
+    action: input
+    selector: "#password"
+    value: "{{ account.password }}"
+
+  - name: submit
+    action: click
+    selector: "button[type='submit']"
